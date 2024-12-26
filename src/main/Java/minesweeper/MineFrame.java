@@ -62,6 +62,7 @@ public class MineFrame extends JFrame{
         back.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 remove(win);
                 remove(lose);
                 remove(content);
@@ -140,6 +141,7 @@ public class MineFrame extends JFrame{
         remWin.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 remove(win);
                 refresh();
             }
@@ -148,6 +150,7 @@ public class MineFrame extends JFrame{
         remLose.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 remove(lose);
                 refresh();
             }
@@ -156,6 +159,7 @@ public class MineFrame extends JFrame{
         remCon.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 remove(content);
                 refresh();
             }
@@ -164,6 +168,7 @@ public class MineFrame extends JFrame{
         remAll.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 remove(win);
                 remove(lose);
                 remove(content);
@@ -174,6 +179,7 @@ public class MineFrame extends JFrame{
         addWin.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // change
                 add(win);
                 refresh();
             }
@@ -182,6 +188,7 @@ public class MineFrame extends JFrame{
         addLose.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // change
                 add(lose);
                 refresh();
             }
@@ -190,6 +197,7 @@ public class MineFrame extends JFrame{
         addCon.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: change
                 add(content);
                 refresh();
             }
@@ -246,6 +254,7 @@ public class MineFrame extends JFrame{
         actions.add(hide);
         
         //construct debug
+        // TODO: consider change
         JMenu rem = new JMenu("Remove");
         rem.add(remWin);
         rem.add(remLose);
@@ -363,6 +372,7 @@ public class MineFrame extends JFrame{
                 l.setText(Integer.toString(panel[i].back));
                 panel[i].setBackground(REVEALED);
         }
+        // TODO: change
         remove(win);
         remove(lose);
         remove(content);
@@ -387,6 +397,7 @@ public class MineFrame extends JFrame{
             t.back = 0;
             ((JLabel)t.getComponents()[0]).setText("");
         }
+        // TODO: change
         remove(win);
         remove(lose);
         remove(content);
@@ -400,8 +411,9 @@ public class MineFrame extends JFrame{
 
         void mineSweeper(Tile t, MouseEvent event){
             if(ended){
+                // TODO: change
                 remove(content);
-                if(isWon())add(win);
+                if(isWon()) add(win);
                 else add(lose);
             }
             //if RightClick(flag)
