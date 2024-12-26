@@ -22,7 +22,18 @@ public class MineFrame extends JFrame{
     public final Color MINE = Color.RED;
     private final int x,y;
     private ArrayList<Integer> mines;
-    private JPanel content;//grid of tiles
+
+    private String WIN_SCREEN = "Win Screen";
+    private String LOSE_SCREEN = "Lose Screen";
+    private String CONTENT_SCREEN = "Content Screen";
+
+    private JPanel content; // grid of tiles
+    private JPanel win; // win screen
+    private JPanel lose; // lose screen
+
+    private JMenuBar bar; // menu bar
+    private JPanel pages; // cardlayout panel
+
     private Tile[] panel;
     private boolean ended = false;// to freeze the final moment
     private int revealed = 0;//count tiles opened
@@ -36,15 +47,24 @@ public class MineFrame extends JFrame{
         }
     };
 
-    //convienience
+    // switch cards
+    public void switchToContent() {
+        ((CardLayout)(this.pages.getLayout())).show(this.pages, CONTENT_SCREEN);
+    }
+
+    public void switchToWin() {
+        ((CardLayout)(this.pages.getLayout())).show(this.pages, WIN_SCREEN);
+    }
+
+    public void switchToLose() {
+        ((CardLayout)(this.pages.getLayout())).show(this.pages, LOSE_SCREEN);
+    }
+
+    // convienience
     public void refresh(){
         revalidate();
         repaint();
     }
-
-    private JMenuBar bar;//menu bar
-    
-    private JPanel win, lose;
     
     public MineFrame(int x, int y){
         this.x = x;
@@ -58,49 +78,52 @@ public class MineFrame extends JFrame{
         PanelListener listener = new PanelListener();
         
         
-        JButton back = new JButton("back");
-        back.addActionListener(new ActionListener(){
+        JButton winBackButton = new JButton("back");
+        winBackButton.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                remove(win);
-                remove(lose);
-                remove(content);
-                add(content);
+                switchToContent();
                 refresh();
             }
         });
 
-        JButton winRes = new JButton("reset");
-        winRes.addActionListener(resetActionListener);
+        JButton winResetButton = new JButton("reset");
+        winResetButton.addActionListener(resetActionListener);
 
         //constructing win panel
         win = new JPanel(new GridLayout(3, 1));
         //win.setName("win");
         win.setBackground(Color.GREEN);
         win.add(new JLabel("You Won"));
-        win.add(BorderLayout.CENTER, back);
-        win.add(BorderLayout.CENTER, winRes);
+        win.add(BorderLayout.CENTER, winBackButton);
+        win.add(BorderLayout.CENTER, winResetButton);
 
         //constructing lose panel
-        JButton losBac = new JButton("back");
-        losBac.addActionListener(back.getActionListeners()[0]);
+        JButton loseBackButton = new JButton("back");
+        loseBackButton.addActionListener(new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                switchToContent();
+                refresh();
+            }
+        });
 
-        JButton losRes = new JButton("reset");
-        losRes.addActionListener(resetActionListener);
+        JButton loseResetButton = new JButton("reset");
+        loseResetButton.addActionListener(resetActionListener);
 
         lose = new JPanel(new GridLayout(3,1));
         //lose.setName("lose");
         lose.setBackground(Color.RED);
         lose.add(new JLabel("Oops, Try Again"));
-        lose.add(BorderLayout.CENTER, losBac);
-        lose.add(BorderLayout.CENTER, losRes);
+        lose.add(BorderLayout.CENTER, loseBackButton);
+        lose.add(BorderLayout.CENTER, loseResetButton);
 
         
         
         JMenuItem reset = new JMenuItem("reset");
         reset.addActionListener(resetActionListener);
         
+        // reveals all tiles on content page
         JMenuItem reveal = new JMenuItem("reveal");
         reveal.addActionListener(new ActionListener(){
             @Override
@@ -115,6 +138,8 @@ public class MineFrame extends JFrame{
                 }
             }
         });
+
+        // hides tiles on content page
         JMenuItem hide = new JMenuItem("hide");
         hide.addActionListener(new ActionListener(){
             @Override
@@ -137,72 +162,8 @@ public class MineFrame extends JFrame{
                 refresh();
             }
         });
-        JMenuItem remWin = new JMenuItem("Remove Win Screen");
-        remWin.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                remove(win);
-                refresh();
-            }
-        });
-        JMenuItem remLose = new JMenuItem("Remove Lose Screen");
-        remLose.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                remove(lose);
-                refresh();
-            }
-        });
-        JMenuItem remCon = new JMenuItem("Remove Content Screen");
-        remCon.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                remove(content);
-                refresh();
-            }
-        });
-        JMenuItem remAll = new JMenuItem("Remove All Screens");
-        remAll.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                remove(win);
-                remove(lose);
-                remove(content);
-                refresh();
-            }
-        });
-        JMenuItem addWin = new JMenuItem("Add Win Screen");
-        addWin.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // change
-                add(win);
-                refresh();
-            }
-        });
-        JMenuItem addLose = new JMenuItem("Add Lose Screen");
-        addLose.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // change
-                add(lose);
-                refresh();
-            }
-        });
-        JMenuItem addCon = new JMenuItem("Add Content Screen");
-        addCon.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: change
-                add(content);
-                refresh();
-            }
-        });
-        //testing purpose
+        
+        //testing purposes
         JMenuItem rev = new JMenuItem("Reveal Content");
         rev.addActionListener(new ActionListener(){
             @SuppressWarnings("unused")
@@ -254,23 +215,8 @@ public class MineFrame extends JFrame{
         actions.add(hide);
         
         //construct debug
-        // TODO: consider change
-        JMenu rem = new JMenu("Remove");
-        rem.add(remWin);
-        rem.add(remLose);
-        rem.add(remCon);
-        rem.add(remAll);
-
-        JMenu add = new JMenu("Add");
-        add.add(addWin);
-        add.add(addLose);
-        add.add(addCon);
         
         JMenu debug = new JMenu("Debug");
-        debug.add(rem);
-        debug.addSeparator();
-        debug.add(add);
-        debug.addSeparator();
         debug.add(update);
         debug.addSeparator();
         debug.add(rev);
@@ -293,7 +239,16 @@ public class MineFrame extends JFrame{
             panel[i].add(BorderLayout.CENTER, t);
         }
         content.setName("content");
-        this.add(content);
+
+        // initalize cards
+        pages = new JPanel(new CardLayout());
+
+        pages.add(content, CONTENT_SCREEN);
+        pages.add(win, WIN_SCREEN);
+        pages.add(lose, LOSE_SCREEN);
+
+        this.add(pages);
+
         populate();
         refresh();
         this.setTitle("Grid");
@@ -372,17 +327,13 @@ public class MineFrame extends JFrame{
                 l.setText(Integer.toString(panel[i].back));
                 panel[i].setBackground(REVEALED);
         }
-        // TODO: change
-        remove(win);
-        remove(lose);
-        remove(content);
         if(isWon()){
             System.out.println("win");
-            add(win);
+            switchToWin();
         }
         else{
             System.out.println("lose");
-            add(lose);
+            switchToLose();
         }
         refresh();
     }
@@ -397,11 +348,7 @@ public class MineFrame extends JFrame{
             t.back = 0;
             ((JLabel)t.getComponents()[0]).setText("");
         }
-        // TODO: change
-        remove(win);
-        remove(lose);
-        remove(content);
-        add(content);
+        switchToContent();
         revalidate();
         repaint();
     }
@@ -411,10 +358,8 @@ public class MineFrame extends JFrame{
 
         void mineSweeper(Tile t, MouseEvent event){
             if(ended){
-                // TODO: change
-                remove(content);
-                if(isWon()) add(win);
-                else add(lose);
+                if(isWon()) switchToWin();
+                else switchToLose();
             }
             //if RightClick(flag)
             if (SwingUtilities.isRightMouseButton(event)){
