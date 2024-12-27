@@ -1,8 +1,8 @@
 package minesweeper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -136,7 +136,8 @@ public class MineFrame extends JPanel{
             .limit(NUM_MINES)
             .boxed().collect(Collectors.toCollection(ArrayList::new));
         
-        //settinng tiles as mines
+        // settinng tiles as mines
+        // delay updates
         Set<Integer> neighbor = new HashSet<Integer>(8*NUM_MINES);
         Tile current;
         for(Integer i : mines){
@@ -147,7 +148,10 @@ public class MineFrame extends JPanel{
                 neighbor.add(j);
             }
         }
+
+        // sanitise data
         neighbor.remove(-1);
+        // batch update
         neighbor.parallelStream().forEach(index -> panel[index].updateBack());
     }
     
@@ -201,9 +205,48 @@ public class MineFrame extends JPanel{
 
                 // extremely buggy
                 //make it so that the firt click is always on 0;
-                /*
                 
-                if(revealed==0 && (!t.isZero()) && false){
+                if (revealed==0 && (!t.isZero())) {
+                    ArrayList<Integer> startingArea = IntStream.of(t.getSurroundings())
+                                                        .filter(index -> index != -1)
+                                                        .boxed()
+                                                        .collect(Collectors.toCollection(ArrayList::new));
+                    List<Integer> minesInTheWay = startingArea.stream()
+                                                    .filter(index -> panel[index].isMine())
+                                                    .toList();
+
+                    minesInTheWay.forEach(index -> panel[index].reset());
+
+                    Set<Integer> toUpdate = new HashSet<>();
+                    startingArea.forEach(index -> 
+                                            IntStream.of(panel[index].getSurroundings())
+                                            .filter(index1 -> index1 != -1)
+                                                .forEach(adjacent -> 
+                                                    toUpdate.add(adjacent)
+                                                    )
+                                            );
+
+                    // generate new mine positions
+                    List<Integer> newPositions = new Random()
+                                    .ints(0, MineFrame.this.x * MineFrame.this.y)
+                                    .filter(index -> !mines.contains(index))
+                                    .distinct()
+                                    .limit(minesInTheWay.size())
+                                    .boxed()
+                                    .collect(Collectors.toList());
+                    
+                    newPositions.forEach(pos -> panel[pos].setMine());
+
+                    newPositions.forEach(pos -> 
+                                            IntStream.of(panel[pos].getSurroundings())
+                                            .filter(index -> index != -1)
+                                            .forEach(index -> 
+                                                        toUpdate.add(index)
+                                                        )
+                                            );
+
+                    toUpdate.forEach(index -> panel[index].updateBack());
+                    /*
                     // number of mines removed
                     int mineCount = 0;
                     for(int i: t.getSurroundings()){
@@ -259,8 +302,8 @@ public class MineFrame extends JPanel{
                         }
                     }
                     
+                    */
                 }
-                */
                 if (t.getBackground() == COVERED) {
                     t.clickOn();
                 }

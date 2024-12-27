@@ -20,9 +20,12 @@ public class Tile extends JPanel{
         int index = 0;
         this.container = container;
         int[] temp = new int[9];
-        for(int i=-1;i<2;i++){
-            for(int j=-1;j<2;j++){
-                if((id%x)+i>=x||(id%x)+i<0||id+j*x>=x*y||id+j*x<0){temp[index++]=-1;}//-1 bc index of 0 is also in the board
+        for (int i=-1; i<2; i++) {
+            for (int j=-1; j<2; j++) {
+                if ((id%x)+i >= x ||
+                    (id%x)+i < 0 ||
+                    id+j*x >= x*y ||
+                    id+j*x < 0) {temp[index++]=-1;}//-1 bc index of 0 is also in the board
                 else temp[index++] = id+i+j*x;
             }
         }
