@@ -1,11 +1,7 @@
 package minesweeper;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.InputMismatchException;
-import java.util.Scanner;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +9,7 @@ import java.awt.event.*;
 
 
 
-public class MineFrame extends JFrame{
+public class MineFrame extends JPanel{
     private final double  MINE_RATIO = 0.128;//0.208
     private int NUM_MINES = 0;//99;
     public final Color COVERED = Color.WHITE;
@@ -23,42 +19,11 @@ public class MineFrame extends JFrame{
     private final int x,y;
     private ArrayList<Integer> mines;
 
-    private String WIN_SCREEN = "Win Screen";
-    private String LOSE_SCREEN = "Lose Screen";
-    private String CONTENT_SCREEN = "Content Screen";
-
-    private JPanel content; // grid of tiles
-    private JPanel win; // win screen
-    private JPanel lose; // lose screen
-
-    private JMenuBar bar; // menu bar
-    private JPanel pages; // cardlayout panel
+    private App parent; // parent app
 
     private Tile[] panel;
     private boolean ended = false;// to freeze the final moment
     private int revealed = 0;//count tiles opened
-
-    //reset the game
-    private final ActionListener resetActionListener = new ActionListener(){
-        @Override
-        public void actionPerformed(ActionEvent event){
-            reset();
-            populate();
-        }
-    };
-
-    // switch cards
-    public void switchToContent() {
-        ((CardLayout)(this.pages.getLayout())).show(this.pages, CONTENT_SCREEN);
-    }
-
-    public void switchToWin() {
-        ((CardLayout)(this.pages.getLayout())).show(this.pages, WIN_SCREEN);
-    }
-
-    public void switchToLose() {
-        ((CardLayout)(this.pages.getLayout())).show(this.pages, LOSE_SCREEN);
-    }
 
     // convienience
     public void refresh(){
@@ -66,165 +31,17 @@ public class MineFrame extends JFrame{
         repaint();
     }
     
-    public MineFrame(int x, int y){
+    public MineFrame(int x, int y, App parent){
+        super(new GridLayout(y, x,1,1));
         this.x = x;
         this.y = y;
+        this.parent = parent;
         
         //makes num mines if set to 0 initally
         if(NUM_MINES==0) NUM_MINES = (int)(x*y*MINE_RATIO);
 
-        content = new JPanel(new GridLayout(y, x,1,1));
         this.panel = new Tile[y*x];
         PanelListener listener = new PanelListener();
-        
-        
-        JButton winBackButton = new JButton("back");
-        winBackButton.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                switchToContent();
-                refresh();
-            }
-        });
-
-        JButton winResetButton = new JButton("reset");
-        winResetButton.addActionListener(resetActionListener);
-
-        //constructing win panel
-        win = new JPanel(new GridLayout(3, 1));
-        //win.setName("win");
-        win.setBackground(Color.GREEN);
-        win.add(new JLabel("You Won"));
-        win.add(BorderLayout.CENTER, winBackButton);
-        win.add(BorderLayout.CENTER, winResetButton);
-
-        //constructing lose panel
-        JButton loseBackButton = new JButton("back");
-        loseBackButton.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                switchToContent();
-                refresh();
-            }
-        });
-
-        JButton loseResetButton = new JButton("reset");
-        loseResetButton.addActionListener(resetActionListener);
-
-        lose = new JPanel(new GridLayout(3,1));
-        //lose.setName("lose");
-        lose.setBackground(Color.RED);
-        lose.add(new JLabel("Oops, Try Again"));
-        lose.add(BorderLayout.CENTER, loseBackButton);
-        lose.add(BorderLayout.CENTER, loseResetButton);
-
-        
-        
-        JMenuItem reset = new JMenuItem("reset");
-        reset.addActionListener(resetActionListener);
-        
-        // reveals all tiles on content page
-        JMenuItem reveal = new JMenuItem("reveal");
-        reveal.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                for(Tile t : panel){
-                    if(t.back==10){
-                        t.setBackground(MINE);
-                        continue;
-                    }
-                    t.setBackground(REVEALED);
-                    ((JLabel)t.getComponents()[0]).setText(Integer.toString(t.back));
-                }
-            }
-        });
-
-        // hides tiles on content page
-        JMenuItem hide = new JMenuItem("hide");
-        hide.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                System.out.println("hide");
-                ended = false;
-                for(Tile t:panel){
-                    t.setBackground(COVERED);
-                    if(t.back==10)continue;
-                    ((JLabel)t.getComponents()[0]).setText("");
-                }  
-                revealed = 0;
-            }
-        });
-        
-        JMenuItem update = new JMenuItem("Update Screen");
-        update.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                refresh();
-            }
-        });
-        
-        //testing purposes
-        JMenuItem rev = new JMenuItem("Reveal Content");
-        rev.addActionListener(new ActionListener(){
-            @SuppressWarnings("unused")
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JMenuItem mI = (JMenuItem)e.getSource();
-                JRootPane h= mI.getRootPane();
-                System.out.println();
-                System.out.println(mI.getClass().toString());
-                System.out.println(mI.getName());
-                System.out.println(mI.toString());
-                
-                JPopupMenu m = (JPopupMenu)mI.getParent();
-                System.out.println();
-                System.out.println(m.getClass().toString());
-                System.out.println(m.getName());
-                System.out.println(m.toString());
-                
-                JMenuBar mB = (JMenuBar)m.getParent();
-                System.out.println();
-                System.out.println(mB.getClass().toString());
-                System.out.println(mB.getName());
-                System.out.println(mB.toString());
-                JFrame f = (JFrame)mB.getParent();
-                System.out.println();
-                System.out.println(f.getClass().toString());
-                System.out.println(f.getName());
-                System.out.println(f.toString());
-                
-                System.out.println(mI.getComponentCount());
-                for(Component c:mI.getComponents()){
-                    JPanel p = (JPanel)c;
-                    System.out.println("win: "+p.equals(win));
-                    System.out.println("lose: "+p.equals(lose));
-                    System.out.println("content: "+p.equals(content));
-                    System.out.println(p.getClass().toString());
-                    System.out.println(p.getName());
-                    System.out.println(p.toString());
-                }
-            }
-        });
-
-        //construct actions
-        JMenu actions = new JMenu("Actions");
-        
-        actions.add(reset);
-        actions.addSeparator();
-        actions.add(reveal);
-        actions.add(hide);
-        
-        //construct debug
-        
-        JMenu debug = new JMenu("Debug");
-        debug.add(update);
-        debug.addSeparator();
-        debug.add(rev);
-        
-        bar = new JMenuBar();
-        bar.add(actions);
-        bar.add(debug);
-        this.getContentPane().add(BorderLayout.NORTH, bar);
         
         
         //constructing content panel
@@ -232,29 +49,17 @@ public class MineFrame extends JFrame{
             panel[i] = new Tile(i, this);
             panel[i].setBackground(COVERED);
             panel[i].addMouseListener(listener);
-            content.add(panel[i]);
+            this.add(panel[i]);
             //!! simplify?
             JLabel t = new JLabel();
             t.setForeground(Color.GREEN);
             panel[i].add(BorderLayout.CENTER, t);
         }
-        content.setName("content");
-
-        // initalize cards
-        pages = new JPanel(new CardLayout());
-
-        pages.add(content, CONTENT_SCREEN);
-        pages.add(win, WIN_SCREEN);
-        pages.add(lose, LOSE_SCREEN);
-
-        this.add(pages);
+        setName("content");
 
         populate();
         refresh();
-        this.setTitle("Grid");
         this.setVisible(true);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(300,200);
     }
 
     
@@ -284,10 +89,34 @@ public class MineFrame extends JFrame{
     
     public Tile getPanelAt(int index){return panel[index];}
     
-    public void reveal(){revealed++;}
+    public void incrementRevealedCounter(){revealed++;}
 
+    public void revealTiles() { 
+        /* debug unhides tiles/mines
+         */
+        for(Tile t : panel){
+            if(t.back==10){
+                t.setBackground(MINE);
+                continue;
+            }
+            t.setBackground(REVEALED);
+            ((JLabel)t.getComponents()[0]).setText(Integer.toString(t.back));
+        }
+    }
 
-    private void populate(){
+    public void hideTiles() {
+        /* debug hides tiles/mines
+         */
+        ended = false;
+        for(Tile t:panel){
+            t.setBackground(COVERED);
+            if(t.back==10)continue;
+            ((JLabel)t.getComponents()[0]).setText("");
+        }  
+        revealed = 0;
+    }
+
+    public void populate() {
         //create mines
         int next;//save mem
         mines = new ArrayList<Integer>();
@@ -329,17 +158,17 @@ public class MineFrame extends JFrame{
         }
         if(isWon()){
             System.out.println("win");
-            switchToWin();
+            parent.switchToWin();
         }
         else{
             System.out.println("lose");
-            switchToLose();
+            parent.switchToLose();
         }
         refresh();
     }
     
     
-    private void reset(){
+    public void reset(){
         ended = false;
         revealed = 0;
         mines = new ArrayList<Integer>();
@@ -348,7 +177,7 @@ public class MineFrame extends JFrame{
             t.back = 0;
             ((JLabel)t.getComponents()[0]).setText("");
         }
-        switchToContent();
+        parent.switchToContent();
         revalidate();
         repaint();
     }
@@ -356,10 +185,10 @@ public class MineFrame extends JFrame{
 
     private class PanelListener implements MouseListener {
 
-        void mineSweeper(Tile t, MouseEvent event){
+        void clickResponder(Tile t, MouseEvent event){
             if(ended){
-                if(isWon()) switchToWin();
-                else switchToLose();
+                if(isWon()) parent.switchToWin();
+                else parent.switchToLose();
             }
             //if RightClick(flag)
             if (SwingUtilities.isRightMouseButton(event)){
@@ -370,6 +199,7 @@ public class MineFrame extends JFrame{
             //if LeftClick(flag)
             else if(SwingUtilities.isLeftMouseButton(event)&& t.getBackground()==COVERED){
 
+                // extremely buggy
                 //make it so that the firt click is always on 0;
                 if(revealed==0&&t.back!=0){
                     // number of mines removed
@@ -457,7 +287,7 @@ public class MineFrame extends JFrame{
             Object source = event.getSource();
             if(source instanceof Tile){
                 JPanel panelPressed = (JPanel) source;
-                mineSweeper((Tile)panelPressed, event);
+                clickResponder((Tile)panelPressed, event);
                 refresh();
             }
         }
@@ -482,56 +312,6 @@ public class MineFrame extends JFrame{
 
         @Override
         public void mouseReleased(MouseEvent arg0) {}
-
-    }
-
-    private static boolean isInt(String input){
-        try{
-            Integer.parseInt(input);
-            return true;
-        }catch(NumberFormatException _){
-            return false;
-        }
-    }
-
-    @SuppressWarnings("unused")
-    public static void main(String[] args){
-        int input, row = 0;
-        int column = 0;
-        Stream<String> arg = Arrays.stream(args);
-        if (args.length == 2 && arg.allMatch(x -> isInt(x))){
-            row = Integer.parseInt(args[0]);
-            column = Integer.parseInt(args[1]);
-        }
-
-        Scanner scan = new Scanner(System.in);
-        while(row < 1){
-            try{
-                System.out.println("how many rows?");
-                input = scan.nextInt();
-                row = input;
-                break;
-            }
-            catch (InputMismatchException e){
-            }
-        }
-        while(column < 1){
-            try{
-                System.out.println("how many columns?");
-                input = scan.nextInt();
-                column = input;
-                break;
-            }
-            catch (InputMismatchException e){
-            }
-        }
-        scan.close();
-        MineFrame theGUI = new MineFrame(column, row);
-        // System.exit(0);
-        //theGUI.setTitle("Grid");
-        //theGUI.setVisible(true);
-        //theGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        //theGUI.setSize(330,400);
 
     }
     

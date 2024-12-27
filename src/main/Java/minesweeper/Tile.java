@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.awt.*;
 import javax.swing.*;
 
-// import JavaMinesweeper.src.MineFrame;
-
 public class Tile extends JPanel{
     public final int id;
     private final int[] surroundings;
@@ -46,7 +44,7 @@ public class Tile extends JPanel{
         if(back!=0){
             ((JLabel)getComponents()[0]).setText(Integer.toString(back));
             setBackground(container.REVEALED);
-            container.reveal();
+            container.incrementRevealedCounter();
             if (container.isWon())container.gameEnd();
             return;
         }
@@ -75,7 +73,7 @@ public class Tile extends JPanel{
                 curTile = container.getPanelAt(i);
                 ((JLabel)curTile.getComponents()[0]).setText(Integer.toString(curTile.back));
                 curTile.setBackground(container.REVEALED);
-                container.reveal();
+                container.incrementRevealedCounter();
                 container.refresh();
             }
             if (container.isWon())container.gameEnd();
