@@ -36,6 +36,8 @@ public class Tile extends JPanel{
         add(BorderLayout.CENTER, text);
         
     }
+
+    @Deprecated
     public int[] getSurroundings(){return surroundings;}
 
     public void updateBack() {
