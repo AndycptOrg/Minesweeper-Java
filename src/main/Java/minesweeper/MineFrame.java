@@ -1,6 +1,11 @@
 package minesweeper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.swing.*;
@@ -12,10 +17,10 @@ import java.awt.event.*;
 public class MineFrame extends JPanel{
     private final double  MINE_RATIO = 0.128;//0.208
     private int NUM_MINES = 0;//99;
-    public final Color COVERED = Color.WHITE;
-    public final Color REVEALED = Color.DARK_GRAY;
-    public final Color FLAGGED = Color.ORANGE;
-    public final Color MINE = Color.RED;
+    public static final Color COVERED = Color.WHITE;
+    public static final Color REVEALED = Color.DARK_GRAY;
+    public static final Color FLAGGED = Color.ORANGE;
+    public static final Color MINE = Color.RED;
     private final int x,y;
     private ArrayList<Integer> mines;
 
@@ -25,11 +30,6 @@ public class MineFrame extends JPanel{
     private boolean ended = false;// to freeze the final moment
     private int revealed = 0;//count tiles opened
 
-    // convienience
-    public void refresh(){
-        revalidate();
-        repaint();
-    }
     
     public MineFrame(int x, int y, App parent){
         super(new GridLayout(y, x,1,1));
@@ -50,27 +50,25 @@ public class MineFrame extends JPanel{
             panel[i].setBackground(COVERED);
             panel[i].addMouseListener(listener);
             this.add(panel[i]);
-            //!! simplify?
-            JLabel t = new JLabel();
-            t.setForeground(Color.GREEN);
-            panel[i].add(BorderLayout.CENTER, t);
         }
         setName("content");
 
         populate();
-        refresh();
         this.setVisible(true);
     }
 
     
-    @Deprecated
-    public static boolean isValid(int[] pair, int x, int y){
-        return (0<=pair[0]&&pair[0]<x)&&(0<=pair[1]&&pair[1]<y);
-    }
+    /**
+     * checks if pair is a valid coordinate
+     * @param pair index of Tile
+     */ 
     public boolean isValid(int pair){
-        return (0<=pair&&pair<this.x*this.y);
+        return (0 <= pair && pair < this.x * this.y);
     }
 
+    /**
+     * checks board state if won
+     */
     public boolean isWon(){
         System.out.println("Tile Count: "+(x*y));
         System.out.println("Mine Count: "+NUM_MINES);
@@ -87,73 +85,86 @@ public class MineFrame extends JPanel{
     
     public int getNumMines(){return mines.size();}
     
-    public Tile getPanelAt(int index){return panel[index];}
+    public Tile getTileAt(int index){return panel[index];}
     
     public void incrementRevealedCounter(){revealed++;}
 
+    /**
+     * debug unhides tiles/mines
+     */
     public void revealTiles() { 
-        /* debug unhides tiles/mines
-         */
         for(Tile t : panel){
-            if(t.back==10){
-                t.setBackground(MINE);
-                continue;
-            }
-            t.setBackground(REVEALED);
-            ((JLabel)t.getComponents()[0]).setText(Integer.toString(t.back));
+            t.reveal();
         }
     }
 
+    /**
+     * debug hides tiles/mines
+     */
     public void hideTiles() {
-        /* debug hides tiles/mines
-         */
-        ended = false;
+        ended = false; // for case where if game ended but want to restart
         for(Tile t:panel){
-            t.setBackground(COVERED);
-            if(t.back==10)continue;
-            ((JLabel)t.getComponents()[0]).setText("");
+            t.hideTile();
         }  
         revealed = 0;
     }
+   
+    /**
+     * resets game panel + associated states
+     */
+    public void reset(){
+        ended = false;
+        revealed = 0;
+        mines = new ArrayList<Integer>();
 
+        for(Tile t:panel){
+            t.reset();
+        }
+        parent.switchToContent();
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * populates gameboard with mines
+     */
     public void populate() {
         //create mines
-        int next;//save mem
-        mines = new ArrayList<Integer>();
-        mines.add((int)(Math.random()*x*y));
-    
         //generating mines without duplicates
-        while (mines.size()<NUM_MINES){
-            next = (int)(Math.random()*x*y);
-            if(mines.contains(next))continue;
-            mines.add(next);
-        }
+        mines = new Random().ints(0, x*y)
+            .distinct()
+            .limit(NUM_MINES)
+            .boxed().collect(Collectors.toCollection(ArrayList::new));
         
         //settinng tiles as mines
+        Set<Integer> neighbor = new HashSet<Integer>(8*NUM_MINES);
         Tile current;
         for(Integer i : mines){
             System.out.print("("+i/y+","+i%y+"), ");
             current = panel[i];
-            current.setState(10);
+            current.setMine();
             for(int j :current.getSurroundings()){
-                if(!isValid(j))continue;
-                if(panel[j].back==10)continue;
-                panel[j].back++;
+                neighbor.add(j);
             }
         }
+        neighbor.remove(-1);
+        neighbor.parallelStream().forEach(index -> panel[index].updateBack());
     }
     
+    /**
+     * handles game end event
+     */
     public void gameEnd(){
         ended = true;
 
         for(int i = 0; i < y*x; i++){
-                if(panel[i].back==10){
+                if(panel[i].isMine()){
                     if(panel[i].getBackground()==FLAGGED)continue;
                     panel[i].setBackground(MINE);
                     continue;
                 }
                 JLabel l= (JLabel)panel[i].getComponents()[0];
-                l.setText(Integer.toString(panel[i].back));
+                l.setText(Integer.toString(panel[i].getNumOfSurroundingMines()));
                 panel[i].setBackground(REVEALED);
         }
         if(isWon()){
@@ -164,28 +175,17 @@ public class MineFrame extends JPanel{
             System.out.println("lose");
             parent.switchToLose();
         }
-        refresh();
-    }
-    
-    
-    public void reset(){
-        ended = false;
-        revealed = 0;
-        mines = new ArrayList<Integer>();
-        for(Tile t:panel){
-            t.setBackground(COVERED);;
-            t.back = 0;
-            ((JLabel)t.getComponents()[0]).setText("");
-        }
-        parent.switchToContent();
-        revalidate();
-        repaint();
     }
 
 
+    /**
+     * listener handling click events for each tile
+     */
     private class PanelListener implements MouseListener {
 
         void clickResponder(Tile t, MouseEvent event){
+            assert t.getBackground() != MINE;
+
             if(ended){
                 if(isWon()) parent.switchToWin();
                 else parent.switchToLose();
@@ -197,29 +197,31 @@ public class MineFrame extends JPanel{
                 else if(t.getBackground()==COVERED)t.setBackground(FLAGGED);
             }
             //if LeftClick(flag)
-            else if(SwingUtilities.isLeftMouseButton(event)&& t.getBackground()==COVERED){
+            else if(SwingUtilities.isLeftMouseButton(event)){
 
                 // extremely buggy
                 //make it so that the firt click is always on 0;
-                if(revealed==0&&t.back!=0){
+                /*
+                
+                if(revealed==0 && (!t.isZero()) && false){
                     // number of mines removed
                     int mineCount = 0;
                     for(int i: t.getSurroundings()){
                         if(!isValid(i))continue;
                         //remove all mines
-                        if(panel[i].back==10){
+                        if(panel[i].isMine()){
                             mines.remove(mines.indexOf(i));
                             mineCount++;
                             for(int j:panel[i].getSurroundings()){
                                 if(!isValid(j))continue;
-                                if(panel[j].back==10||panel[j].back==0)continue;
+                                if(panel[j].isMine()||panel[j].getNumOfSurroundingMines()==0)continue;
                                 panel[j].back--;
                             }
                             panel[i].back = 0; // ??? how does this not cause a bug
                         }
 
                     }
-
+                    
                     // index of moved mines
                     int[] moved = new int[mineCount];
                     
@@ -237,43 +239,47 @@ public class MineFrame extends JPanel{
                         mines.add(next);
                         moved[moved.length-mineCount--] = next;
                     }
-
+                    
                     //update new mines
                     for(int i:moved){
-                        panel[i].back = 10;
+                        panel[i].setMine();
                         for(int j:panel[i].getSurroundings()){
                             if(!isValid(j))continue;
-                            if(panel[j].back==10)continue;
+                            if(panel[j].isMine())continue;
                             panel[j].back++;
                         }
                     }
-
+                    
                     for(int i:t.getSurroundings()){
                         if(!isValid(i))continue;
                         panel[i].back = 0;//prevent recount
                         for(int j:panel[i].getSurroundings()){
                             if(!isValid(j))continue;
-                            if(panel[j].back==10)panel[i].back++;
+                            if(panel[j].isMine())panel[i].back++;
                         }
                     }
-
+                    
                 }
-                if(t.back==10){
-                    gameEnd();
-                    return;
+                */
+                if (t.getBackground() == COVERED) {
+                    t.clickOn();
                 }
-                t.reveal();
+                else if (t.getBackground() == FLAGGED) {
+                    // ignore when flagged
+                }
+                else { // REVEALED
+                    if (IntStream.of(t.getSurroundings())
+                        .filter(index -> isValid(index) && panel[index].getBackground() == FLAGGED)
+                        .count() == t.getNumOfSurroundingMines()) {
+                        for(int index: t.getSurroundings()) {
+                            if(isValid(index) && panel[index].getBackground() == COVERED) {
+                                panel[index].clickOn();
+                            }
+                        }
+                    }
+                }
                 
-            }
-            // else if LeftClick(uncovered)
-            else{
-                if(t.back == IntStream.of(t.getSurroundings()).filter(x -> isValid(x) && panel[x].getBackground() == FLAGGED).count()){
-                    for(int i: t.getSurroundings()){
-                        if(isValid(i) && panel[i].getBackground() == COVERED){
-                            panel[i].reveal();
-                        }
-                    }
-                }
+                
             }
         }
         public void onClick(MouseEvent event){
@@ -288,7 +294,6 @@ public class MineFrame extends JPanel{
             if(source instanceof Tile){
                 JPanel panelPressed = (JPanel) source;
                 clickResponder((Tile)panelPressed, event);
-                refresh();
             }
         }
 

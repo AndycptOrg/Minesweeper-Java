@@ -179,7 +179,7 @@ public class App extends JFrame{
         this.setSize(300,200);
     }
 
-    //reset the game
+    // reset the game
     private final ActionListener resetActionListener = new ActionListener(){
         @Override
         public void actionPerformed(ActionEvent event){
@@ -211,7 +211,8 @@ public class App extends JFrame{
 
     // convienience
     public void refresh(){
-        /* Refresh app view
+        /*
+         * Refresh app view
          */
         revalidate();
         repaint();
