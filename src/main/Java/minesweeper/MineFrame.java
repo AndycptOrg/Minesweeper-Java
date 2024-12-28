@@ -236,13 +236,16 @@ public class MineFrame extends JPanel{
                                             IntStream.of(tile.getValidSurroundings())
                                                 .forEach(toUpdate::add)
                                             );
-                                            
+
                     newMinTiles.forEach(tile -> 
                                             IntStream.of(tile.getValidSurroundings())
                                             .forEach(toUpdate::add)
                                             );
 
                     toUpdate.forEach(index -> panel[index].updateBack());
+
+                    minesInTheWay.forEach(tile -> mines.remove(tile.id));
+                    newMinTiles.forEach(tile -> mines.add(tile.id));
                 }
                 if (t.getBackground() == COVERED) {
                     t.clickOn();
