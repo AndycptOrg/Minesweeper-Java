@@ -244,7 +244,7 @@ public class MineFrame extends JPanel{
 
                     toUpdate.forEach(index -> panel[index].updateBack());
 
-                    minesInTheWay.forEach(tile -> mines.remove(tile.id));
+                    minesInTheWay.forEach(tile -> mines.remove((Object)tile.id));
                     newMinTiles.forEach(tile -> mines.add(tile.id));
                 }
                 if (t.getBackground() == COVERED) {
