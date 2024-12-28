@@ -190,6 +190,7 @@ public class App extends JFrame{
 
     // switch cards
     public void switchToContent() {
+        System.out.println("Switching to content panel");
         // cheeky growing map code
         // this.pages.remove(content);
         // this.x ++;
@@ -202,10 +203,12 @@ public class App extends JFrame{
     }
 
     public void switchToWin() {
+        System.out.println("Switching to win page");
         ((CardLayout)(this.pages.getLayout())).show(this.pages, WIN_SCREEN);
     }
 
     public void switchToLose() {
+        System.out.println("Switching to lose page");
         ((CardLayout)(this.pages.getLayout())).show(this.pages, LOSE_SCREEN);
     }
 

@@ -1,6 +1,9 @@
 package minesweeper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+
+import static java.util.function.Predicate.not;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -26,7 +29,7 @@ public class MineFrame extends JPanel{
 
     private App parent; // parent app
 
-    private Tile[] panel;
+    private final Tile[] panel;
     private boolean ended = false;// to freeze the final moment
     private int revealed = 0;//count tiles opened
 
@@ -46,10 +49,11 @@ public class MineFrame extends JPanel{
         
         //constructing content panel
         for(int i = 0; i < y*x; i++){
-            panel[i] = new Tile(i, this);
-            panel[i].setBackground(COVERED);
-            panel[i].addMouseListener(listener);
-            this.add(panel[i]);
+            Tile tile = new Tile(i, this);
+            tile.setBackground(COVERED);
+            tile.addMouseListener(listener);
+            panel[i] = tile;
+            this.add(tile);
         }
         setName("content");
 
@@ -59,7 +63,7 @@ public class MineFrame extends JPanel{
 
     
     /**
-     * checks if pair is a valid coordinate
+     * checks if index is a valid coordinate
      * @param pair index of Tile
      */ 
     public boolean isValid(int pair){
@@ -143,14 +147,12 @@ public class MineFrame extends JPanel{
         for(Integer i : mines){
             System.out.print("("+i/y+","+i%y+"), ");
             current = panel[i];
-            current.setMine();
-            for(int j :current.getSurroundings()){
+            current.setAsMine();
+            for(int j :current.getValidSurroundings()){
                 neighbor.add(j);
             }
         }
 
-        // sanitise data
-        neighbor.remove(-1);
         // batch update
         neighbor.parallelStream().forEach(index -> panel[index].updateBack());
     }
@@ -159,24 +161,23 @@ public class MineFrame extends JPanel{
      * handles game end event
      */
     public void gameEnd(){
+        System.out.println("Ending game");
         ended = true;
 
-        for(int i = 0; i < y*x; i++){
-                if(panel[i].isMine()){
-                    if(panel[i].getBackground()==FLAGGED)continue;
-                    panel[i].setBackground(MINE);
+        // reveal all tiles in content pane
+        for(Tile tile: panel){
+                if (tile.isMine()) {
+                    if (tile.getBackground()==FLAGGED) continue;
+                    tile.setBackground(MINE);
                     continue;
                 }
-                JLabel l= (JLabel)panel[i].getComponents()[0];
-                l.setText(Integer.toString(panel[i].getNumOfSurroundingMines()));
-                panel[i].setBackground(REVEALED);
+                tile.reveal();
         }
-        if(isWon()){
-            System.out.println("win");
+
+        if (isWon()) {
             parent.switchToWin();
         }
-        else{
-            System.out.println("lose");
+        else {
             parent.switchToLose();
         }
     }
@@ -195,114 +196,53 @@ public class MineFrame extends JPanel{
                 else parent.switchToLose();
             }
             //if RightClick(flag)
-            if (SwingUtilities.isRightMouseButton(event)){
-                //for(int i:t.getSurroundings())System.out.println(i);
-                if(t.getBackground()==FLAGGED)t.setBackground(COVERED);
-                else if(t.getBackground()==COVERED)t.setBackground(FLAGGED);
+            if (SwingUtilities.isRightMouseButton(event)) {
+                if (t.getBackground()==FLAGGED) t.setBackground(COVERED);
+                else if (t.getBackground()==COVERED) t.setBackground(FLAGGED);
             }
             //if LeftClick(flag)
             else if(SwingUtilities.isLeftMouseButton(event)){
 
-                // extremely buggy
+                // possibly buggy
                 //make it so that the firt click is always on 0;
                 
                 if (revealed==0 && (!t.isZero())) {
-                    ArrayList<Integer> startingArea = IntStream.of(t.getSurroundings())
-                                                        .filter(index -> index != -1)
-                                                        .boxed()
-                                                        .collect(Collectors.toCollection(ArrayList::new));
-                    List<Integer> minesInTheWay = startingArea.stream()
-                                                    .filter(index -> panel[index].isMine())
+                    List<Integer> startingArea = Arrays.stream(t.getValidSurroundings())
+                                                    .boxed()
+                                                    .toList();
+                    List<Tile> startingAreaTiles = startingArea.stream().map(MineFrame.this::getTileAt).toList();
+                    List<Tile> minesInTheWay = startingAreaTiles.stream()
+                                                    .filter(tile -> tile.isMine())
                                                     .toList();
 
-                    minesInTheWay.forEach(index -> panel[index].reset());
-
-                    Set<Integer> toUpdate = new HashSet<>();
-                    startingArea.forEach(index -> 
-                                            IntStream.of(panel[index].getSurroundings())
-                                            .filter(index1 -> index1 != -1)
-                                                .forEach(adjacent -> 
-                                                    toUpdate.add(adjacent)
-                                                    )
-                                            );
+                    minesInTheWay.forEach(tile -> tile.reset());
 
                     // generate new mine positions
-                    List<Integer> newPositions = new Random()
+                    List<Tile> newMinTiles = new Random()
                                     .ints(0, MineFrame.this.x * MineFrame.this.y)
-                                    .filter(index -> !mines.contains(index))
+                                    .boxed() // convert from primitive stream to allow Predicate<Object> casting
+                                    .filter(not(mines::contains))
+                                    .filter(not(startingArea::contains))
                                     .distinct()
                                     .limit(minesInTheWay.size())
-                                    .boxed()
-                                    .collect(Collectors.toList());
+                                    .map(MineFrame.this::getTileAt)
+                                    .toList();
                     
-                    newPositions.forEach(pos -> panel[pos].setMine());
+                    newMinTiles.forEach(tile -> tile.setAsMine());
 
-                    newPositions.forEach(pos -> 
-                                            IntStream.of(panel[pos].getSurroundings())
-                                            .filter(index -> index != -1)
-                                            .forEach(index -> 
-                                                        toUpdate.add(index)
-                                                        )
+                    // maintin use of index instead of tile reference till equivalence is proved
+                    Set<Integer> toUpdate = new HashSet<>();
+                    startingAreaTiles.forEach(tile -> 
+                                            IntStream.of(tile.getValidSurroundings())
+                                                .forEach(toUpdate::add)
+                                            );
+                                            
+                    newMinTiles.forEach(tile -> 
+                                            IntStream.of(tile.getValidSurroundings())
+                                            .forEach(toUpdate::add)
                                             );
 
                     toUpdate.forEach(index -> panel[index].updateBack());
-                    /*
-                    // number of mines removed
-                    int mineCount = 0;
-                    for(int i: t.getSurroundings()){
-                        if(!isValid(i))continue;
-                        //remove all mines
-                        if(panel[i].isMine()){
-                            mines.remove(mines.indexOf(i));
-                            mineCount++;
-                            for(int j:panel[i].getSurroundings()){
-                                if(!isValid(j))continue;
-                                if(panel[j].isMine()||panel[j].getNumOfSurroundingMines()==0)continue;
-                                panel[j].back--;
-                            }
-                            panel[i].back = 0; // ??? how does this not cause a bug
-                        }
-
-                    }
-                    
-                    // index of moved mines
-                    int[] moved = new int[mineCount];
-                    
-                    // if the number of spaces remaining is less than number of mines
-                    if (x*y-IntStream.of(t.getSurroundings()).map(x -> isValid(x)?1:0).sum() < NUM_MINES){
-                        System.err.println("\nError: cannot find enough space for mines");
-                        System.exit(0);
-                    }
-                    //warning: this segment/feature can cause forever loop if there are not enough spaces for mines
-                    //find spaces for mines
-                    while (mineCount>0){
-                        int next = (int)(Math.random()*x*y);
-                        //if next is already a mine or in the starting box
-                        if(mines.contains(next)||IntStream.of(t.getSurroundings()).anyMatch(x -> x == next))continue;
-                        mines.add(next);
-                        moved[moved.length-mineCount--] = next;
-                    }
-                    
-                    //update new mines
-                    for(int i:moved){
-                        panel[i].setMine();
-                        for(int j:panel[i].getSurroundings()){
-                            if(!isValid(j))continue;
-                            if(panel[j].isMine())continue;
-                            panel[j].back++;
-                        }
-                    }
-                    
-                    for(int i:t.getSurroundings()){
-                        if(!isValid(i))continue;
-                        panel[i].back = 0;//prevent recount
-                        for(int j:panel[i].getSurroundings()){
-                            if(!isValid(j))continue;
-                            if(panel[j].isMine())panel[i].back++;
-                        }
-                    }
-                    
-                    */
                 }
                 if (t.getBackground() == COVERED) {
                     t.clickOn();
@@ -311,12 +251,20 @@ public class MineFrame extends JPanel{
                     // ignore when flagged
                 }
                 else { // REVEALED
-                    if (IntStream.of(t.getSurroundings())
-                        .filter(index -> isValid(index) && panel[index].getBackground() == FLAGGED)
+                    // if the # of flagged tiles are the same as the number on the revealed tile
+                    // click on the remaining covered tiles
+                    if (Arrays.stream(t.getValidSurroundingTiles())
+                        .filter(tile -> tile.getBackground() == FLAGGED)
                         .count() == t.getNumOfSurroundingMines()) {
-                        for(int index: t.getSurroundings()) {
-                            if(isValid(index) && panel[index].getBackground() == COVERED) {
-                                panel[index].clickOn();
+                        
+
+                        Arrays.stream(t.getValidSurroundingTiles())
+                        .filter(tile -> tile.getBackground() == COVERED)
+                        .forEach(tile -> tile.clickOn());
+
+                        for (Tile tile: t.getValidSurroundingTiles()) {
+                            if(tile.getBackground() == COVERED) {
+                                tile.clickOn();
                             }
                         }
                     }

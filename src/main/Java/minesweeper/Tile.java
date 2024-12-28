@@ -2,23 +2,30 @@ package minesweeper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 import java.awt.*;
 import javax.swing.*;
 
 public class Tile extends JPanel{
+    // index of self
     public final int id;
+    // indicies of surrounding tile indexes
     private final int[] surroundings;
+    // reference to parent mineframe
     private final MineFrame container;
-    private int back; // indicate type of tile
+    // indicate type/state of tile
+    private int back;
     private JLabel text;
 
-    public Tile(int id, MineFrame container){
+    public Tile(int id, MineFrame container) {
         super();
         this.id = id;
+        this.container = container;
+
+        // get surrounding tile indicies
         int x = container.getXValue();
         int y = container.getYValue();
         int index = 0;
-        this.container = container;
         int[] temp = new int[9];
         for (int i=-1; i<2; i++) {
             for (int j=-1; j<2; j++) {
@@ -37,15 +44,39 @@ public class Tile extends JPanel{
         
     }
 
-    @Deprecated
-    public int[] getSurroundings(){return surroundings;}
+    /**
+     * returns array of valid tile indexes surrounding the tile
+     * inclusive with self
+     * @return array of indexes
+     */
+    public int[] getValidSurroundings() {
+        return IntStream.of(surroundings)
+            .filter(index -> index != -1)
+            .toArray();
+    }
+    
 
+    /**
+     * returns array of valid Tiles surrounding the tile
+     * inclusive with self
+     * @return array of Tiles
+     */
+    public Tile[] getValidSurroundingTiles() {
+        return IntStream.of(getValidSurroundings())
+        .boxed()
+        .map(container::getTileAt)
+        .toArray(Tile[]::new);
+    }
+
+    /**
+     * updates state
+     */
     public void updateBack() {
         if (isMine()) return;
         back = getNumOfSurroundingMines();
     }
 
-    public void setMine() {
+    public void setAsMine() {
         this.back = 10;
     }
 
@@ -123,6 +154,8 @@ public class Tile extends JPanel{
 
     /**
      * Reveals Tile
+     * 
+     * clears all FLAGGED state
      */
     public void reveal() {
         if (isMine()) {
